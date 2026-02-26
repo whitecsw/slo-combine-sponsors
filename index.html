@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SLO County Combine — 2026 Sponsorship Pipeline</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif; background: #0f0f0f; color: #e8e4de; min-height: 100vh; }
+  input, select, button, textarea { font-family: inherit; }
+  select { cursor: pointer; }
+  button { cursor: pointer; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #1a1a1a; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  ::placeholder { color: #5a5550; }
+  @media (max-width: 768px) {
+    .header-inner { flex-direction: column !important; align-items: flex-start !important; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .tier-grid { grid-template-columns: 1fr !important; }
+    .filter-bar { flex-direction: column !important; }
+    .filter-bar > * { width: 100% !important; min-width: unset !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useEffect, useCallback } = React;
+
+const TIERS = [
+  { id: "pip", name: "Performance Intelligence Partner", price: "$5,000", available: 1, color: "#C9A227", accent: "#1a1a1a", description: "Title co-branding, booth, social media, verbal recognition, website header logo, participant shirts & swag, dedicated email feature" },
+  { id: "mplp", name: "Mindset & Performance Leadership Partner", price: "$3,000", available: 1, color: "#8B7355", accent: "#2a2a2a", description: "Exclusive panel sponsorship, on-stage intro, stage branding, VIP access, panel promo integration, post-event digital visibility" },
+  { id: "psp", name: "Performance Storytelling Partner", price: "$1,750", available: 1, color: "#6B8E8E", accent: "#1e2e2e", description: "Exclusive media partner, logo on photos/videos, social & digital visibility, post-event asset association" },
+  { id: "bcp", name: "Benchmark & Comparison Partner", price: "$1,100", available: 6, color: "#7B6B8A", accent: "#2a2230", description: "Analysis station signage, analysis report brand placement" },
+  { id: "adp", name: "Athlete Development Partner", price: "$850", available: 6, color: "#5A7D5A", accent: "#1e2e1e", description: "Booth space, Instagram story highlight, website logo, participant shirts, video board, participant email visibility" },
+  { id: "accp", name: "Athlete Care & Continuity Partner", price: "$750", available: 1, color: "#8B5E5E", accent: "#2e1e1e", description: "Naming rights to Athlete Care Station, on-site logo, website logo + hyperlink, recognition in participant email" },
+  { id: "cps", name: "Community Performance Supporter", price: "$500", available: 10, color: "#5A6B7D", accent: "#1e2230", description: "Website placement, participant visibility, video board placement" },
+  { id: "ik_dinner", name: "🍽️ In-Kind: Dinner / Catering", price: "In-Kind", available: 3, color: "#D97706", accent: "#2a1e0a", description: "Volunteer dinner (night before), speaker dinner (event night), post-event gathering." },
+  { id: "ik_hotel", name: "🏨 In-Kind: Hotel / Accommodation", price: "In-Kind", available: 2, color: "#7C3AED", accent: "#1e0a2a", description: "Complimentary rooms for guest speakers (1-2 nights around May 8-9)." },
+  { id: "ik_snacks", name: "🥤 In-Kind: Snacks & Hydration", price: "In-Kind", available: 3, color: "#059669", accent: "#0a2a1e", description: "Healthy snacks and water/electrolytes for athletes during the combine." },
+  { id: "ik_other", name: "🎁 In-Kind: Other Support", price: "In-Kind", available: 5, color: "#9CA3AF", accent: "#1e1e22", description: "Printing/signage, equipment, swag bag items, gift cards, venue space, etc." }
+];
+
+const STATUS_OPTIONS = ["Not Contacted", "Email Sent", "Call Scheduled", "Meeting Set", "Proposal Sent", "Follow Up", "Committed", "Declined"];
+const STATUS_COLORS = { "Not Contacted": "#6b7280", "Email Sent": "#3b82f6", "Call Scheduled": "#8b5cf6", "Meeting Set": "#f59e0b", "Proposal Sent": "#f97316", "Follow Up": "#ec4899", "Committed": "#10b981", "Declined": "#ef4444" };
+
+const DEFAULT_PROSPECTS = [
+  { id: 1, tier: "pip", name: "Mindbody Inc.", category: "Tech / SaaS", contact: "Community Partnerships", email: "partnerships@mindbodyonline.com", phone: "(877) 755-4279", website: "mindbodyonline.com", address: "689 Tank Farm Rd, Suite 230, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "SLO-headquartered tech giant. Wellness & fitness platform — perfect brand alignment. 850+ employees.", priority: "high" },
+  { id: 2, tier: "pip", name: "Adventist Health Sierra Vista", category: "Hospital / Healthcare", contact: "Community Relations / Marketing", email: "info@adventisthealth.org", phone: "(805) 546-7600", website: "adventisthealth.org", address: "1010 Murray Ave, San Luis Obispo, CA 93405", region: "SLO", status: "Not Contacted", notes: "Major SLO hospital. Sports medicine and orthopedic services. Strong community health programs.", priority: "high" },
+  { id: 3, tier: "pip", name: "Cottage Health", category: "Hospital / Healthcare", contact: "Community Benefit & Partnerships", email: "info@cottagehealth.org", phone: "(805) 682-7111", website: "cottagehealth.org", address: "400 W Pueblo St, Santa Barbara, CA 93105", region: "SB", status: "Not Contacted", notes: "Largest hospital between LA and SF. Already sponsors youth sports (FNL). 519-bed, 3,500+ employees.", priority: "high" },
+  { id: 4, tier: "pip", name: "BMW of San Luis Obispo", category: "Auto Dealership", contact: "General Manager", email: "info@bmwofslo.com", phone: "(805) 543-4423", website: "bmwofslo.com", address: "12150 Los Osos Valley Rd, San Luis Obispo, CA 93405", region: "SLO", status: "Not Contacted", notes: "Premium brand. Nearly 40 years on Central Coast. Luxury alignment with performance intelligence.", priority: "high" },
+  { id: 5, tier: "pip", name: "SESLOC Credit Union", category: "Financial Institution", contact: "Marketing / Community Relations", email: "info@sesloc.org", phone: "(805) 543-1816", website: "sesloc.org", address: "3807 Broad St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Founded 1942. 6 branches across SLO/SB. Cal Poly campus presence. Youth-oriented mission.", priority: "high" },
+  { id: 6, tier: "pip", name: "French Hospital Medical Center", category: "Hospital / Healthcare", contact: "Marketing & Community Outreach", email: "info@dignityhealth.org", phone: "(805) 543-5353", website: "dignityhealth.org/central-coast", address: "1911 Johnson Ave, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Dignity Health system. Orthopedic and sports medicine services.", priority: "medium" },
+  { id: 7, tier: "mplp", name: "American Riviera Bank", category: "Financial Institution", contact: "Marketing Director", email: "info@americanrivierabank.com", phone: "(805) 965-5942", website: "americanrivierabank.com", address: "1033 Anacapa St, Santa Barbara, CA 93101", region: "SB", status: "Not Contacted", notes: "Community bank serving SB & SLO counties. Premium 'Riviera' brand positioning.", priority: "high" },
+  { id: 8, tier: "mplp", name: "SLO Credit Union", category: "Financial Institution", contact: "Marketing / Community Development", email: "info@slocu.com", phone: "(805) 543-5839", website: "slocu.com", address: "1220 Osos St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Local since 1953. Deep SLO roots. Youth and community banking mission.", priority: "high" },
+  { id: 9, tier: "mplp", name: "Todd Thomas — State Farm Agent", category: "Insurance", contact: "Todd Thomas, ChFC", email: "info@toddthomasagency.com", phone: "(805) 543-0650", website: "toddthomasagency.com", address: "1238 Marsh St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "25+ years experience. Deep community roots. Leadership & preparation aligns with mindset tier.", priority: "high" },
+  { id: 10, tier: "mplp", name: "Roberts & Spiegel Injury Lawyers", category: "Law Firm", contact: "Managing Partners", email: "info@randsinjurylaw.com", phone: "(805) 543-7400", website: "randsinjurylaw.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Boutique SLO firm. 20+ years. BBB outstanding rating. Sports injury connection.", priority: "medium" },
+  { id: 11, tier: "mplp", name: "Mercedes-Benz of San Luis Obispo", category: "Auto Dealership", contact: "General Manager", email: "info@mbslo.com", phone: "(805) 543-4423", website: "mbslo.com", address: "San Luis Obispo, CA 93405", region: "SLO", status: "Not Contacted", notes: "Family-owned luxury dealership. 25+ years. Premium brand positioning.", priority: "medium" },
+  { id: 12, tier: "mplp", name: "Edward Jones — SLO Offices", category: "Financial Advisory", contact: "Local Financial Advisors", email: "—", phone: "(805) 543-2039", website: "edwardjones.com", address: "Multiple SLO locations", region: "SLO", status: "Not Contacted", notes: "National financial advisory firm. Long-term planning aligns with mindset partnership.", priority: "medium" },
+  { id: 13, tier: "psp", name: "BLARE Media", category: "Marketing / Video", contact: "Founders", email: "info@blaremedia.net", phone: "(805) 592-5063", website: "blaremedia.net", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "SLO social media & video agency. Worked with Microsoft. Perfect media/storytelling fit.", priority: "high" },
+  { id: 14, tier: "psp", name: "20|20 Creative Group", category: "Marketing Agency", contact: "Agency Principal", email: "info@2020creativegroup.com", phone: "(805) 542-0707", website: "2020creativegroup.com", address: "867 Pacific St #220, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Full-service SLO marketing agency. Video, social, branding. Healthcare and sports clients.", priority: "high" },
+  { id: 15, tier: "psp", name: "RP3 Productions", category: "Video / Photo", contact: "Robert — Owner", email: "info@rp3productions.com", phone: "(805) 459-4050", website: "rp3productions.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Top-rated SLO video production. Natural fit for documenting combine events.", priority: "high" },
+  { id: 16, tier: "psp", name: "Acacia Productions", category: "Video / Photo", contact: "Production Team", email: "info@acaciaproductions.co", phone: "—", website: "acaciaproductions.co", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Strategic marketing + creative production. Central Coast based.", priority: "medium" },
+  { id: 17, tier: "psp", name: "S. Lombardi & Associates", category: "Marketing / PR", contact: "Agency Leadership", email: "info@slaslo.com", phone: "(805) 541-1588", website: "slaslo.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Longest-established marketing agency on Central Coast. Since 1973.", priority: "medium" },
+  { id: 18, tier: "psp", name: "Foudre Productions", category: "Video / Photo", contact: "Production Team", email: "info@foudre.productions", phone: "—", website: "foudre.productions", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "SLO cinematic video. Lifestyle and brand storytelling focus.", priority: "medium" },
+  { id: 19, tier: "bcp", name: "Central Coast Orthopedics", category: "Sports Medicine", contact: "Practice Administrator", email: "info@centralcoastortho.com", phone: "(805) 541-4600", website: "centralcoastortho.com", address: "862 Meinecke Ave, Ste 100, San Luis Obispo, CA 93405", region: "SLO", status: "Not Contacted", notes: "Since 1984. Sports medicine specialists. Direct athlete performance connection.", priority: "high" },
+  { id: 20, tier: "bcp", name: "Sports & Wellness Physical Therapy", category: "Physical Therapy", contact: "Doug — Owner/PT", email: "info@swptslo.com", phone: "(805) 543-9966", website: "swptslo.com", address: "3440 S Higuera St, Ste 120, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Since 1999. Sports-focused PT. Natural station-level sponsor.", priority: "high" },
+  { id: 21, tier: "bcp", name: "Gymnazo", category: "Sports Performance", contact: "Michael — Co-Founder", email: "info@gymnazo.com", phone: "(805) 769-8545", website: "gymnazo.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Functional movement training. Applied Functional Science. Cal Poly Kinesiology connections.", priority: "high" },
+  { id: 22, tier: "bcp", name: "Movement for Life PT", category: "Physical Therapy", contact: "Colleen — Owner/DPT", email: "info@movementforlife.com", phone: "(805) 541-3321", website: "movementforlife.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Award-winning PT. 6th-gen SLO native. Rehab for Olympians, pro and collegiate athletes.", priority: "high" },
+  { id: 23, tier: "bcp", name: "GH Sports", category: "Athletic Apparel", contact: "Ownership / Sales", email: "info@ghsports.com", phone: "(805) 543-2883", website: "ghsports.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "SLO-based athletic apparel design & manufacturing. Could also do in-kind apparel.", priority: "medium" },
+  { id: 24, tier: "bcp", name: "Santa Barbara Bone & Joint", category: "Orthopedic", contact: "Practice Administrator", email: "info@santabarbaraboneandjoint.com", phone: "(805) 963-2521", website: "santabarbaraboneandjoint.com", address: "Santa Barbara, CA", region: "SB", status: "Not Contacted", notes: "Orthopedic surgeons and sports medicine across SB/SLO regions.", priority: "medium" },
+  { id: 25, tier: "bcp", name: "Precision Physical Therapy", category: "Physical Therapy", contact: "Practice Owner", email: "info@precisionptw.com", phone: "(805) 545-8580", website: "precisionptw.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Sports therapy, taping, geriatrics. Good station signage fit.", priority: "medium" },
+  { id: 26, tier: "bcp", name: "EMBODY Health & Wellness", category: "Physical Therapy", contact: "Dr. Megan Mullin", email: "info@embodyhealing.com", phone: "(805) 888-7737", website: "embodyhealing.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Sports PT, running analysis, pre/post-op. Athletic injury specialty.", priority: "medium" },
+  { id: 27, tier: "adp", name: "Cole Chrysler Dodge Jeep Ram FIAT", category: "Auto Dealership", contact: "General Manager", email: "info@colechryslerdodge.net", phone: "(805) 543-7321", website: "colechryslerdodge.net", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Family-owned 50+ years. Strong community reputation.", priority: "high" },
+  { id: 28, tier: "adp", name: "Toyota of San Luis Obispo", category: "Auto Dealership", contact: "Marketing Manager", email: "info@toyota-slo.com", phone: "(805) 543-0100", website: "toyota-slo.com", address: "San Luis Obispo, CA 93405", region: "SLO", status: "Not Contacted", notes: "Major SLO dealership. Good youth development brand alignment.", priority: "high" },
+  { id: 29, tier: "adp", name: "Fluid Sports Nutrition", category: "Sports Nutrition", contact: "Founder / Owner", email: "info@livefluid.com", phone: "—", website: "livefluid.com", address: "725 Buckley Rd, Suite D, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "SLO-based clean sports nutrition. Protein, recovery, fuel. Perfect alignment.", priority: "high" },
+  { id: 30, tier: "adp", name: "MG Sports Supplements", category: "Sports Nutrition", contact: "Matt Gaines — Founder", email: "info@mgsportssupplements.com", phone: "(805) 439-1576", website: "mgsportssupplements.com", address: "973 E Foothill Blvd, Ste 105, San Luis Obispo, CA 93405", region: "SLO", status: "Not Contacted", notes: "Locally owned 20+ years. Cal Poly connection. Could also do in-kind.", priority: "high" },
+  { id: 31, tier: "adp", name: "Coast Nissan", category: "Auto Dealership", contact: "Marketing / GM", email: "info@coastnissan.com", phone: "(805) 543-4745", website: "coastnissan.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Trusted SLO Nissan dealer. Community-oriented.", priority: "medium" },
+  { id: 32, tier: "adp", name: "MedSpa SLO", category: "Med Spa / Wellness", contact: "Owner / Director", email: "info@medspaslo.com", phone: "(805) 457-3244", website: "medspaslo.com", address: "867 Pacific St, San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Premier SLO med spa. Peptide & hormone therapy. Performance wellness alignment.", priority: "medium" },
+  { id: 33, tier: "adp", name: "Perry Ford of San Luis Obispo", category: "Auto Dealership", contact: "Marketing / GM", email: "info@perryfordofsanluis.com", phone: "(805) 543-1818", website: "perryfordofsanluis.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Ford and Lincoln vehicles. Quality used cars.", priority: "medium" },
+  { id: 34, tier: "adp", name: "Kennedy Club Fitness", category: "Gym / Fitness", contact: "General Manager", email: "info@kennedyclubs.com", phone: "(805) 543-0858", website: "kennedyclubs.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Multi-location SLO fitness center. Large member base.", priority: "medium" },
+  { id: 35, tier: "accp", name: "Sloco Massage + Wellness", category: "Massage / Wellness", contact: "Owner / Manager", email: "info@slocomassage.com", phone: "(805) 593-7100", website: "slocomassage.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Sports massage, cryotherapy, detox, recovery. Perfect athlete care alignment.", priority: "high" },
+  { id: 36, tier: "accp", name: "Elevate Massage + Performance", category: "Massage / Sports Recovery", contact: "Owner / Therapist", email: "info@elevatemassageslo.com", phone: "(805) 439-2270", website: "elevatemassageslo.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Sports-focused massage. Name literally aligns with combine mission.", priority: "high" },
+  { id: 37, tier: "accp", name: "Aesthera MedSpa", category: "Med Spa", contact: "Shonra — Owner", email: "info@aestheramedspa.com", phone: "(805) 773-4005", website: "aestheramedspa.com", address: "Pismo Beach, CA", region: "SLO", status: "Not Contacted", notes: "Best med spa reviews in SLO area. Recovery and wellness focus.", priority: "medium" },
+  { id: 38, tier: "accp", name: "SLO Wellness Center", category: "Chiropractic", contact: "Dr. Sandy Sachs / Dr. Juan Carlos Marin", email: "info@slowellness.com", phone: "(805) 544-5355", website: "slowellness.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Chiropractic care and wellness. Athlete care alignment.", priority: "medium" },
+  { id: 39, tier: "cps", name: "McCarthy's Used Cars", category: "Auto Dealership", contact: "Ownership", email: "info@mccarthyslo.com", phone: "(805) 544-1900", website: "mccarthyslo.com", address: "43 Higuera St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Since 1979. 30,000+ transactions. Deep SLO roots.", priority: "medium" },
+  { id: 40, tier: "cps", name: "Harris Personal Injury Lawyers", category: "Law Firm", contact: "Jared Salter — Managing Attorney", email: "info@harrispersonalinjury.com", phone: "(805) 618-1700", website: "harrispersonalinjury.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Award-winning SLO firm. 700+ Google reviews. Large local team.", priority: "medium" },
+  { id: 41, tier: "cps", name: "Law Office of Daniel J. O'Neill", category: "Law Firm", contact: "Daniel J. O'Neill", email: "info@danieljoneill.com", phone: "(805) 543-0639", website: "danieljoneill.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "35+ years serving SLO. Trial Lawyer of the Year (4x).", priority: "medium" },
+  { id: 42, tier: "cps", name: "CoastHills Credit Union", category: "Financial Institution", contact: "Marketing / Community", email: "info@coasthills.coop", phone: "(805) 733-7600", website: "coasthills.coop", address: "Lompoc / SLO region", region: "SLO", status: "Not Contacted", notes: "Regional credit union. Community banking. Youth savings programs.", priority: "medium" },
+  { id: 43, tier: "cps", name: "Catherine Riedstra — State Farm", category: "Insurance", contact: "Catherine Riedstra, ChFC", email: "info@catherineriedstra.com", phone: "(805) 466-4355", website: "catherineriedstra.com", address: "3591 Sacramento Dr, Suite 114, SLO, CA 93401", region: "SLO", status: "Not Contacted", notes: "2nd-generation State Farm agent. Cal Poly grad. Central Coast native.", priority: "medium" },
+  { id: 44, tier: "cps", name: "Susan Rodriguez — State Farm", category: "Insurance", contact: "Susan Rodriguez", email: "info@rodriguezinsurance.com", phone: "(805) 783-7050", website: "rodriguezinsurance.com", address: "799 E. Foothill Blvd, Suite D, SLO, CA 93405", region: "SLO", status: "Not Contacted", notes: "State Farm since 1987. Chamber member since 2003. Community leader.", priority: "medium" },
+  { id: 45, tier: "cps", name: "Gomez Trial Attorneys", category: "Law Firm", contact: "Office Manager", email: "info@thegomezfirm.com", phone: "(833) 438-4663", website: "thegomezfirm.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Nationally recognized. $106M jury verdict. Sports injury expertise.", priority: "low" },
+  { id: 46, tier: "cps", name: "Founders Bank", category: "Financial Institution", contact: "Community Relations", email: "info@foundersbankslo.com", phone: "(805) 546-0500", website: "foundersbankslo.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Local community bank. Business-focused.", priority: "low" },
+  { id: 47, tier: "cps", name: "Golden 1 Credit Union", category: "Financial Institution", contact: "Branch Manager", email: "info@golden1.com", phone: "(877) 465-3361", website: "golden1.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Large CA credit union. Sports sponsorship experience (Sacramento Kings).", priority: "low" },
+  { id: 100, tier: "ik_dinner", name: "Novo Restaurant & Lounge", category: "Restaurant / Event Space", contact: "Events Manager", email: "info@novorestaurant.com", phone: "(805) 543-3986", website: "novorestaurant.com", address: "726 Higuera St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Creekside setting. Private dining for groups. 1,815 Yelp reviews.", priority: "high" },
+  { id: 101, tier: "ik_dinner", name: "Luna Red", category: "Restaurant / Event Space", contact: "Events Coordinator", email: "info@lunaredslo.com", phone: "(805) 540-5243", website: "lunaredslo.com", address: "1023 Chorro St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Private group dining up to 49 guests. Great for casual volunteer dinner.", priority: "high" },
+  { id: 102, tier: "ik_dinner", name: "Café Roma", category: "Restaurant / Private Dining", contact: "Rizzo Family — Owners", email: "info@caferoma-slo.com", phone: "(805) 541-6800", website: "caferoma-slo.com", address: "1819 Osos St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "40+ years family-owned Italian. Private dining. Great for speaker dinner.", priority: "high" },
+  { id: 103, tier: "ik_dinner", name: "Chef's Table Catering", category: "Catering", contact: "Chef Mike Foley", email: "info@chefstablecatering.com", phone: "(805) 439-3380", website: "chefstablecatering.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Has served US Presidents. Family-run, full-service. Great for volunteer dinner catering.", priority: "high" },
+  { id: 104, tier: "ik_dinner", name: "Firestone Grill", category: "Restaurant", contact: "Manager", email: "info@firestonegrill.com", phone: "(805) 783-1001", website: "firestonegrill.com", address: "1001 Higuera St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "SLO institution. Tri-tip, ribs. Casual and affordable. Great for volunteer dinner.", priority: "medium" },
+  { id: 105, tier: "ik_dinner", name: "Madonna Inn Gold Rush Steak House", category: "Restaurant", contact: "Events / Management", email: "info@madonnainn.com", phone: "(805) 543-3000", website: "madonnainn.com", address: "100 Madonna Rd, San Luis Obispo, CA 93405", region: "SLO", status: "Not Contacted", notes: "Iconic SLO landmark. Could host speaker dinner for extra-special experience.", priority: "medium" },
+  { id: 106, tier: "ik_dinner", name: "Popolo Catering", category: "Catering", contact: "Catering Team", email: "info@popolocatering.com", phone: "(805) 543-9543", website: "popolocatering.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Italian, Mexican, BBQ. Custom menus. Red oak fire. Great value.", priority: "medium" },
+  { id: 107, tier: "ik_dinner", name: "Haute Skillet Catering", category: "Catering", contact: "Chef Anna Andriese", email: "info@hauteskillettruck.com", phone: "(805) 602-1622", website: "hauteskillettruck.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "CIA-trained chef. Healthy, organic focus. Aligns with athlete health.", priority: "medium" },
+  { id: 120, tier: "ik_hotel", name: "Hotel Cerro", category: "Luxury Boutique Hotel", contact: "Sales & Events Team", email: "events@hotelcerro.com", phone: "(805) 548-1000", website: "hotelcerro.com", address: "1125 Garden St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Downtown SLO luxury. 65 rooms. Spa, rooftop pool. Premium speaker hosting.", priority: "high" },
+  { id: 121, tier: "ik_hotel", name: "Granada Hotel & Bistro", category: "Boutique Hotel", contact: "General Manager", email: "info@granadahotelandbistro.com", phone: "(805) 544-9100", website: "granadahotelandbistro.com", address: "1126 Morro St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "17 luxury rooms. Rooftop terrace. French bistro on-site.", priority: "high" },
+  { id: 122, tier: "ik_hotel", name: "The Butler Hotel", category: "Boutique Hotel", contact: "General Manager", email: "info@thebutlerhotel.com", phone: "(805) 316-2100", website: "thebutlerhotel.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Renovated 1950s auto garage. Industrial chic. Near downtown and Cal Poly.", priority: "medium" },
+  { id: 123, tier: "ik_hotel", name: "Garden Street Inn", category: "B&B / Boutique", contact: "Innkeeper", email: "info@gardenstreetinn.com", phone: "(805) 545-9802", website: "gardenstreetinn.com", address: "1212 Garden St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "1887 Victorian B&B. 13 rooms. Gourmet breakfast. Perfect for 1-2 speakers.", priority: "medium" },
+  { id: 124, tier: "ik_hotel", name: "Madonna Inn", category: "Iconic Hotel", contact: "Sales / Events", email: "info@madonnainn.com", phone: "(805) 543-3000", website: "madonnainn.com", address: "100 Madonna Rd, San Luis Obispo, CA 93405", region: "SLO", status: "Not Contacted", notes: "SLO's most iconic hotel. Could combine hotel + dinner for high-impact sponsorship.", priority: "medium" },
+  { id: 125, tier: "ik_hotel", name: "Apple Farm Inn", category: "Hotel / Inn", contact: "Sales / Events", email: "info@applefarm.com", phone: "(805) 544-2040", website: "applefarm.com", address: "2015 Monterey St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Warm hospitality. Well-known SLO property. Good value for speaker accommodations.", priority: "low" },
+  { id: 130, tier: "ik_snacks", name: "Whole Foods Market — SLO", category: "Natural Grocery", contact: "Store Team Leader", email: "—", phone: "(805) 785-0194", website: "wholefoodsmarket.com", address: "1531 Froom Ranch Way, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "In-kind healthy snacks (fruit, granola bars, trail mix) and water for athletes.", priority: "high" },
+  { id: 131, tier: "ik_snacks", name: "Sprouts Farmers Market — SLO", category: "Natural Grocery", contact: "Store Manager", email: "—", phone: "(805) 541-7000", website: "sprouts.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Bananas, oranges, protein bars, bottled water for athlete hydration station.", priority: "high" },
+  { id: 132, tier: "ik_snacks", name: "Trader Joe's — SLO", category: "Grocery", contact: "Store Captain", email: "—", phone: "(805) 542-0749", website: "traderjoes.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Known for in-kind donations. Dried fruit, trail mix, water.", priority: "medium" },
+  { id: 133, tier: "ik_snacks", name: "Fluid Sports Nutrition (In-Kind)", category: "Sports Nutrition", contact: "Founder", email: "info@livefluid.com", phone: "—", website: "livefluid.com", address: "725 Buckley Rd, Suite D, SLO, CA 93401", region: "SLO", status: "Not Contacted", notes: "Protein samples, recovery drinks, branded shaker bottles for swag bags.", priority: "high" },
+  { id: 134, tier: "ik_snacks", name: "Lassens Natural Foods", category: "Health Food Store", contact: "Store Manager", email: "—", phone: "(805) 544-8640", website: "lassens.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Health food store. Healthy snack bars, hydration, organic fruit.", priority: "medium" },
+  { id: 135, tier: "ik_snacks", name: "Costco — SLO", category: "Wholesale Grocery", contact: "Business Center", email: "—", phone: "(805) 783-4800", website: "costco.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Bulk water, protein bars, fruit cups. Most affordable high-volume option.", priority: "medium" },
+  { id: 140, tier: "ik_other", name: "Sycamore Mineral Springs Resort", category: "Hotel / Spa Resort", contact: "Sales & Events", email: "info@sycamoresprings.com", phone: "(805) 595-7302", website: "sycamoresprings.com", address: "1215 Avila Beach Dr, SLO, CA 93405", region: "SLO", status: "Not Contacted", notes: "Could offer speaker gift certificates for hot springs, massage, or accommodations.", priority: "medium" },
+  { id: 141, tier: "ik_other", name: "SLO Brew Rock", category: "Venue / Brewery", contact: "Events Team", email: "info@slobrew.com", phone: "(805) 543-1843", website: "slobrew.com", address: "855 Aerovista Pl, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Venue + brewery + restaurant. Could host volunteer dinner or post-event gathering.", priority: "medium" },
+  { id: 142, tier: "ik_other", name: "Central Coast Brewing", category: "Brewery", contact: "Taproom Manager", email: "info@centralcoastbrewing.com", phone: "(805) 783-2739", website: "centralcoastbrewing.com", address: "San Luis Obispo, CA", region: "SLO", status: "Not Contacted", notes: "Local SLO brewery. Beer for post-event speaker dinner or volunteer appreciation.", priority: "low" },
+  { id: 143, tier: "ik_other", name: "Vons — SLO", category: "Grocery Chain", contact: "Store Director", email: "—", phone: "(805) 543-8000", website: "vons.com", address: "3900 Broad St, San Luis Obispo, CA 93401", region: "SLO", status: "Not Contacted", notes: "Community donation programs. In-kind water cases, fruit, ice.", priority: "low" },
+];
+
+const WORKFLOWS = [
+  { phase: "Phase 1 — Outreach Prep (Week 1)", icon: "📋", tasks: ["Finalize prospect list with priority rankings", "Draft personalized email templates per tier", "Create sponsorship one-pager for email attachment", "Set up tracking in this dashboard"] },
+  { phase: "Phase 2 — Warm Outreach (Weeks 2–3)", icon: "📧", tasks: ["Send personalized emails to all 'high' priority prospects", "Follow up with phone calls 3 days after email", "Leverage personal connections for warm intros", "Target Performance Intelligence Partner first"] },
+  { phase: "Phase 3 — Meetings & Proposals (Weeks 3–5)", icon: "🤝", tasks: ["Schedule in-person or virtual meetings", "Present tier-specific sponsorship deck", "Customize proposals with prospect's logo mockups", "Follow up within 48 hours with formal proposal"] },
+  { phase: "Phase 4 — Close & Onboard (Weeks 5–8)", icon: "✅", tasks: ["Send agreements and collect commitments", "Gather sponsor logos and brand guidelines", "Confirm booth preferences and signage needs", "Add sponsors to website, emails, and materials"] },
+  { phase: "Phase 5 — Post-Event Value (After May 9)", icon: "📸", tasks: ["Share professional photos/videos featuring sponsor branding", "Send sponsor impact report (attendance, reach)", "Thank-you emails with highlight reel", "Discuss renewal for next year"] }
+];
+
+// === STORAGE HELPERS ===
+const STORAGE_KEY = "slo_combine_prospects_v2";
+function loadProspects() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge: keep saved statuses/notes but add any new default prospects
+      const savedMap = {};
+      parsed.forEach(p => { savedMap[p.id] = p; });
+      return DEFAULT_PROSPECTS.map(dp => savedMap[dp.id] ? { ...dp, status: savedMap[dp.id].status, notes: savedMap[dp.id].notes, priority: savedMap[dp.id].priority } : dp);
+    }
+  } catch(e) { console.warn("Failed to load saved data", e); }
+  return DEFAULT_PROSPECTS;
+}
+function saveProspects(prospects) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(prospects.map(p => ({ id: p.id, status: p.status, notes: p.notes, priority: p.priority })))); } catch(e) { console.warn("Failed to save", e); }
+}
+
+function App() {
+  const [prospects, setProspects] = useState(loadProspects);
+  const [activeTier, setActiveTier] = useState("all");
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRegion, setFilterRegion] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
+  const [expandedProspect, setExpandedProspect] = useState(null);
+  const [editingStatus, setEditingStatus] = useState(null);
+  const [editingNotes, setEditingNotes] = useState(null);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [lastSaved, setLastSaved] = useState(null);
+
+  useEffect(() => { saveProspects(prospects); setLastSaved(new Date()); }, [prospects]);
+
+  const updateStatus = useCallback((id, newStatus) => {
+    setProspects(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
+    setEditingStatus(null);
+  }, []);
+
+  const updateNotes = useCallback((id, newNotes) => {
+    setProspects(prev => prev.map(p => p.id === id ? { ...p, notes: newNotes } : p));
+    setEditingNotes(null);
+  }, []);
+
+  const updatePriority = useCallback((id, newPriority) => {
+    setProspects(prev => prev.map(p => p.id === id ? { ...p, priority: newPriority } : p));
+  }, []);
+
+  const resetData = () => { if (confirm("Reset all status changes and notes to defaults?")) { localStorage.removeItem(STORAGE_KEY); setProspects(DEFAULT_PROSPECTS); }};
+
+  const filteredProspects = useMemo(() => {
+    return prospects.filter(p => {
+      if (activeTier !== "all" && p.tier !== activeTier) return false;
+      if (filterRegion !== "all" && p.region !== filterRegion) return false;
+      if (filterStatus !== "all" && p.status !== filterStatus) return false;
+      if (filterPriority !== "all" && p.priority !== filterPriority) return false;
+      if (searchQuery) { const q = searchQuery.toLowerCase(); return p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.notes.toLowerCase().includes(q); }
+      return true;
+    });
+  }, [prospects, activeTier, filterRegion, filterStatus, filterPriority, searchQuery]);
+
+  const stats = useMemo(() => {
+    const total = prospects.length;
+    const committed = prospects.filter(p => p.status === "Committed").length;
+    const inProgress = prospects.filter(p => !["Not Contacted", "Committed", "Declined"].includes(p.status)).length;
+    const notContacted = prospects.filter(p => p.status === "Not Contacted").length;
+    const declined = prospects.filter(p => p.status === "Declined").length;
+    const potentialRevenue = prospects.reduce((sum, p) => { const t = TIERS.find(t => t.id === p.tier); const v = parseInt((t?.price||"").replace(/[\$,]/g,"")); return sum + (isNaN(v)?0:v); }, 0);
+    const inKindCount = prospects.filter(p => p.tier.startsWith("ik_")).length;
+    return { total, committed, inProgress, notContacted, declined, potentialRevenue, inKindCount };
+  }, [prospects]);
+
+  const tierForId = (tierId) => TIERS.find(t => t.id === tierId);
+
+  const s = (obj) => obj; // style passthrough
+
+  return (
+    React.createElement('div', { style: { fontFamily: "'DM Sans', 'Segoe UI', system-ui, sans-serif", background: "#0f0f0f", color: "#e8e4de", minHeight: "100vh" }},
+
+      // HEADER
+      React.createElement('div', { style: { background: "linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 50%, #1a1510 100%)", borderBottom: "1px solid #C9A22740", padding: "20px 24px" }},
+        React.createElement('div', { className: "header-inner", style: { maxWidth: 1400, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }},
+          React.createElement('div', null,
+            React.createElement('h1', { style: { fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 800, margin: 0, background: "linear-gradient(135deg, #C9A227, #e8d48b)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}, "SLO COUNTY COMBINE"),
+            React.createElement('p', { style: { margin: "2px 0 0", color: "#9a9590", fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase" }}, "2026 Sponsorship Pipeline", lastSaved ? ` · Saved ${lastSaved.toLocaleTimeString()}` : "")
+          ),
+          React.createElement('div', { style: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }},
+            ["dashboard", "prospects", "workflows"].map(tab =>
+              React.createElement('button', { key: tab, onClick: () => setActiveTab(tab), style: { padding: "7px 16px", borderRadius: 6, border: activeTab === tab ? "1px solid #C9A227" : "1px solid #333", background: activeTab === tab ? "#C9A22720" : "transparent", color: activeTab === tab ? "#C9A227" : "#9a9590", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}, tab)
+            ),
+            React.createElement('button', { onClick: resetData, style: { padding: "7px 12px", borderRadius: 6, border: "1px solid #333", background: "transparent", color: "#666", fontSize: 11 }}, "Reset")
+          )
+        )
+      ),
+
+      React.createElement('div', { style: { maxWidth: 1400, margin: "0 auto", padding: "20px 24px" }},
+
+        // DASHBOARD TAB
+        activeTab === "dashboard" && React.createElement('div', null,
+          React.createElement('div', { className: "stats-grid", style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 28 }},
+            [
+              { label: "Total Prospects", value: stats.total, color: "#C9A227" },
+              { label: "Not Contacted", value: stats.notContacted, color: "#6b7280" },
+              { label: "In Progress", value: stats.inProgress, color: "#3b82f6" },
+              { label: "Committed", value: stats.committed, color: "#10b981" },
+              { label: "Cash Pipeline", value: `$${stats.potentialRevenue.toLocaleString()}`, color: "#f59e0b" },
+              { label: "In-Kind Prospects", value: stats.inKindCount, color: "#7C3AED" },
+            ].map((s, i) =>
+              React.createElement('div', { key: i, style: { background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 10, padding: "16px 14px", textAlign: "center" }},
+                React.createElement('div', { style: { fontSize: 24, fontWeight: 700, color: s.color, fontFamily: "'Playfair Display', serif" }}, s.value),
+                React.createElement('div', { style: { fontSize: 10, color: "#7a7570", textTransform: "uppercase", letterSpacing: "0.1em", marginTop: 3 }}, s.label)
+              )
+            )
+          ),
+          React.createElement('h2', { style: { fontFamily: "'Playfair Display', serif", fontSize: 20, margin: "0 0 14px", color: "#e8d48b" }}, "Tier Breakdown"),
+          React.createElement('div', { className: "tier-grid", style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12, marginBottom: 28 }},
+            TIERS.map(tier => {
+              const tp = prospects.filter(p => p.tier === tier.id);
+              const committed = tp.filter(p => p.status === "Committed").length;
+              const high = tp.filter(p => p.priority === "high").length;
+              return React.createElement('div', { key: tier.id, onClick: () => { setActiveTier(tier.id); setActiveTab("prospects"); }, style: { background: `linear-gradient(135deg, ${tier.accent}, #1a1a1a)`, border: `1px solid ${tier.color}30`, borderRadius: 10, padding: "16px 18px", cursor: "pointer", transition: "all 0.2s" }},
+                React.createElement('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }},
+                  React.createElement('div', { style: { fontSize: 14, fontWeight: 700, color: "#e8e4de", flex: 1, paddingRight: 8 }}, tier.name),
+                  React.createElement('span', { style: { fontSize: 12, color: tier.color, fontWeight: 600, whiteSpace: "nowrap" }}, tier.price)
+                ),
+                React.createElement('div', { style: { fontSize: 11, color: "#7a7570", marginBottom: 10 }}, `${tier.available} available · ${tp.length} prospects`),
+                React.createElement('div', { style: { display: "flex", gap: 12, fontSize: 11 }},
+                  React.createElement('span', { style: { color: "#C9A227" }}, `⭐ ${high} high`),
+                  React.createElement('span', { style: { color: "#10b981" }}, `✓ ${committed} committed`)
+                ),
+                React.createElement('div', { style: { marginTop: 10, height: 3, background: "#2a2a2a", borderRadius: 2 }},
+                  React.createElement('div', { style: { height: "100%", width: `${Math.min((committed / tier.available) * 100, 100)}%`, background: tier.color, borderRadius: 2, transition: "width 0.5s" }})
+                )
+              );
+            })
+          ),
+          React.createElement('h2', { style: { fontFamily: "'Playfair Display', serif", fontSize: 20, margin: "0 0 14px", color: "#e8d48b" }}, "High-Priority — Contact First"),
+          React.createElement('div', { style: { display: "grid", gap: 6 }},
+            prospects.filter(p => p.priority === "high" && p.status === "Not Contacted").slice(0, 10).map(p => {
+              const tier = tierForId(p.tier);
+              return React.createElement('div', { key: p.id, style: { background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }},
+                React.createElement('div', { style: { flex: 1, minWidth: 180 }},
+                  React.createElement('span', { style: { fontWeight: 600, fontSize: 14 }}, p.name),
+                  React.createElement('span', { style: { color: "#7a7570", fontSize: 11, marginLeft: 8 }}, p.category)
+                ),
+                React.createElement('span', { style: { fontSize: 10, color: tier?.color, background: tier?.color + "15", padding: "2px 7px", borderRadius: 4, fontWeight: 600, whiteSpace: "nowrap" }}, `${tier?.name?.split(" ").slice(0,2).join(" ")} · ${tier?.price}`),
+                React.createElement('span', { style: { fontSize: 11, color: "#7a7570", whiteSpace: "nowrap" }}, p.phone)
+              );
+            })
+          )
+        ),
+
+        // PROSPECTS TAB
+        activeTab === "prospects" && React.createElement('div', null,
+          React.createElement('div', { className: "filter-bar", style: { display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }},
+            React.createElement('input', { value: searchQuery, onChange: e => setSearchQuery(e.target.value), placeholder: "Search prospects...", style: { flex: 1, minWidth: 180, padding: "9px 12px", borderRadius: 8, border: "1px solid #333", background: "#1a1a1a", color: "#e8e4de", fontSize: 13, outline: "none" }}),
+            React.createElement('select', { value: activeTier, onChange: e => setActiveTier(e.target.value), style: { padding: "9px 10px", borderRadius: 8, border: "1px solid #333", background: "#1a1a1a", color: "#e8e4de", fontSize: 12 }},
+              React.createElement('option', { value: "all" }, "All Tiers"),
+              TIERS.map(t => React.createElement('option', { key: t.id, value: t.id }, `${t.name.replace(/🍽️ |🏨 |🥤 |🎁 /g,"")} (${t.price})`))
+            ),
+            React.createElement('select', { value: filterRegion, onChange: e => setFilterRegion(e.target.value), style: { padding: "9px 10px", borderRadius: 8, border: "1px solid #333", background: "#1a1a1a", color: "#e8e4de", fontSize: 12 }},
+              React.createElement('option', { value: "all" }, "All Regions"),
+              React.createElement('option', { value: "SLO" }, "SLO County"),
+              React.createElement('option', { value: "SB" }, "Santa Barbara")
+            ),
+            React.createElement('select', { value: filterStatus, onChange: e => setFilterStatus(e.target.value), style: { padding: "9px 10px", borderRadius: 8, border: "1px solid #333", background: "#1a1a1a", color: "#e8e4de", fontSize: 12 }},
+              React.createElement('option', { value: "all" }, "All Statuses"),
+              STATUS_OPTIONS.map(s => React.createElement('option', { key: s, value: s }, s))
+            ),
+            React.createElement('select', { value: filterPriority, onChange: e => setFilterPriority(e.target.value), style: { padding: "9px 10px", borderRadius: 8, border: "1px solid #333", background: "#1a1a1a", color: "#e8e4de", fontSize: 12 }},
+              React.createElement('option', { value: "all" }, "All Priorities"),
+              React.createElement('option', { value: "high" }, "High"),
+              React.createElement('option', { value: "medium" }, "Medium"),
+              React.createElement('option', { value: "low" }, "Low")
+            )
+          ),
+          React.createElement('div', { style: { fontSize: 12, color: "#7a7570", marginBottom: 14 }}, `Showing ${filteredProspects.length} of ${prospects.length} prospects`),
+          React.createElement('div', { style: { display: "grid", gap: 8 }},
+            filteredProspects.map(p => {
+              const tier = tierForId(p.tier);
+              const isExpanded = expandedProspect === p.id;
+              return React.createElement('div', { key: p.id, style: { background: "#1a1a1a", border: `1px solid ${isExpanded ? tier?.color + "60" : "#2a2a2a"}`, borderRadius: 10, overflow: "hidden", transition: "border-color 0.2s" }},
+                React.createElement('div', { onClick: () => setExpandedProspect(isExpanded ? null : p.id), style: { padding: "13px 16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }},
+                  React.createElement('div', { style: { display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 180 }},
+                    React.createElement('div', { style: { width: 7, height: 7, borderRadius: "50%", background: p.priority === "high" ? "#C9A227" : p.priority === "medium" ? "#6b7280" : "#3a3a3a", flexShrink: 0 }}),
+                    React.createElement('div', null,
+                      React.createElement('div', { style: { fontWeight: 600, fontSize: 14 }}, p.name),
+                      React.createElement('div', { style: { fontSize: 11, color: "#7a7570" }}, `${p.category} · ${p.region === "SLO" ? "SLO County" : "Santa Barbara"}`)
+                    )
+                  ),
+                  React.createElement('div', { style: { display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }},
+                    React.createElement('span', { style: { fontSize: 10, color: tier?.color, background: tier?.color + "15", padding: "2px 7px", borderRadius: 4, fontWeight: 600, whiteSpace: "nowrap" }}, tier?.price),
+                    React.createElement('button', { onClick: (e) => { e.stopPropagation(); setEditingStatus(editingStatus === p.id ? null : p.id); }, style: { fontSize: 10, padding: "3px 8px", borderRadius: 4, border: "none", background: STATUS_COLORS[p.status] + "25", color: STATUS_COLORS[p.status], fontWeight: 600, whiteSpace: "nowrap" }}, `${p.status} ▾`)
+                  )
+                ),
+                editingStatus === p.id && React.createElement('div', { style: { padding: "0 16px 10px", display: "flex", gap: 5, flexWrap: "wrap" }},
+                  STATUS_OPTIONS.map(s => React.createElement('button', { key: s, onClick: (e) => { e.stopPropagation(); updateStatus(p.id, s); }, style: { fontSize: 10, padding: "3px 8px", borderRadius: 4, border: p.status === s ? `1px solid ${STATUS_COLORS[s]}` : "1px solid #333", background: p.status === s ? STATUS_COLORS[s] + "30" : "#0f0f0f", color: STATUS_COLORS[s], fontWeight: 500 }}, s))
+                ),
+                isExpanded && React.createElement('div', { style: { padding: "0 16px 16px", borderTop: "1px solid #2a2a2a", paddingTop: 14 }},
+                  React.createElement('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, fontSize: 13 }},
+                    React.createElement('div', null, React.createElement('div', { style: { color: "#7a7570", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}, "Contact"), React.createElement('div', null, p.contact)),
+                    React.createElement('div', null, React.createElement('div', { style: { color: "#7a7570", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}, "Email"), React.createElement('div', { style: { color: "#C9A227", wordBreak: "break-all" }}, p.email)),
+                    React.createElement('div', null, React.createElement('div', { style: { color: "#7a7570", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}, "Phone"), React.createElement('div', null, p.phone)),
+                    React.createElement('div', null, React.createElement('div', { style: { color: "#7a7570", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}, "Website"), React.createElement('div', { style: { color: "#6B8E8E", wordBreak: "break-all" }}, p.website)),
+                    React.createElement('div', { style: { gridColumn: "1 / -1" }}, React.createElement('div', { style: { color: "#7a7570", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}, "Address"), React.createElement('div', null, p.address)),
+                    React.createElement('div', { style: { gridColumn: "1 / -1" }}, React.createElement('div', { style: { color: "#7a7570", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 3 }}, "Tier"), React.createElement('div', { style: { color: tier?.color, fontSize: 12 }}, `${tier?.name} — ${tier?.description}`)),
+                    React.createElement('div', { style: { gridColumn: "1 / -1" }},
+                      React.createElement('div', { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }},
+                        React.createElement('div', { style: { color: "#7a7570", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}, "Notes"),
+                        React.createElement('button', { onClick: () => { setEditingNotes(p.id); setNotesDraft(p.notes); }, style: { fontSize: 10, color: "#C9A227", background: "none", border: "none", padding: 0 }}, "✏️ Edit")
+                      ),
+                      editingNotes === p.id
+                        ? React.createElement('div', null,
+                            React.createElement('textarea', { value: notesDraft, onChange: e => setNotesDraft(e.target.value), style: { width: "100%", minHeight: 60, padding: 8, borderRadius: 6, border: "1px solid #444", background: "#0f0f0f", color: "#e8e4de", fontSize: 13, resize: "vertical", outline: "none" }}),
+                            React.createElement('div', { style: { display: "flex", gap: 6, marginTop: 6 }},
+                              React.createElement('button', { onClick: () => updateNotes(p.id, notesDraft), style: { padding: "4px 12px", borderRadius: 4, border: "1px solid #10b981", background: "#10b98120", color: "#10b981", fontSize: 11 }}, "Save"),
+                              React.createElement('button', { onClick: () => setEditingNotes(null), style: { padding: "4px 12px", borderRadius: 4, border: "1px solid #666", background: "transparent", color: "#666", fontSize: 11 }}, "Cancel")
+                            )
+                          )
+                        : React.createElement('div', { style: { color: "#c0bab4", lineHeight: 1.5, fontSize: 13 }}, p.notes)
+                    ),
+                    React.createElement('div', { style: { gridColumn: "1 / -1" }},
+                      React.createElement('div', { style: { color: "#7a7570", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}, "Priority"),
+                      React.createElement('div', { style: { display: "flex", gap: 6 }},
+                        ["high", "medium", "low"].map(pr => React.createElement('button', { key: pr, onClick: () => updatePriority(p.id, pr), style: { fontSize: 10, padding: "3px 10px", borderRadius: 4, border: p.priority === pr ? `1px solid ${pr === "high" ? "#C9A227" : pr === "medium" ? "#6b7280" : "#3a3a3a"}` : "1px solid #333", background: p.priority === pr ? (pr === "high" ? "#C9A22720" : "#33333340") : "#0f0f0f", color: pr === "high" ? "#C9A227" : pr === "medium" ? "#9a9590" : "#666", fontWeight: 500, textTransform: "capitalize" }}, pr))
+                      )
+                    )
+                  )
+                )
+              );
+            })
+          )
+        ),
+
+        // WORKFLOWS TAB
+        activeTab === "workflows" && React.createElement('div', null,
+          React.createElement('h2', { style: { fontFamily: "'Playfair Display', serif", fontSize: 22, margin: "0 0 6px", color: "#e8d48b" }}, "Sponsorship Outreach Workflow"),
+          React.createElement('p', { style: { color: "#7a7570", fontSize: 13, marginBottom: 28 }}, "Recommended 8-week cadence leading up to May 9, 2026. Start by mid-March."),
+          React.createElement('div', { style: { display: "grid", gap: 20 }},
+            WORKFLOWS.map((w, i) => React.createElement('div', { key: i, style: { background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 10, padding: 20 }},
+              React.createElement('div', { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }},
+                React.createElement('span', { style: { fontSize: 24 }}, w.icon),
+                React.createElement('h3', { style: { margin: 0, fontSize: 16, fontFamily: "'Playfair Display', serif", color: "#C9A227" }}, w.phase)
+              ),
+              React.createElement('div', { style: { display: "grid", gap: 6 }},
+                w.tasks.map((task, j) => React.createElement('div', { key: j, style: { display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#c0bab4" }},
+                  React.createElement('span', { style: { color: "#C9A22780", flexShrink: 0, marginTop: 1 }}, "◆"),
+                  React.createElement('span', null, task)
+                ))
+              )
+            ))
+          ),
+          React.createElement('div', { style: { marginTop: 28, background: "linear-gradient(135deg, #1a1510, #1a1a1a)", border: "1px solid #C9A22730", borderRadius: 10, padding: 20 }},
+            React.createElement('h3', { style: { fontFamily: "'Playfair Display', serif", fontSize: 18, color: "#e8d48b", margin: "0 0 14px" }}, "Outreach Best Practices"),
+            React.createElement('div', { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, fontSize: 13, color: "#c0bab4", lineHeight: 1.5 }},
+              [
+                ["Lead with value, not the ask.", "Frame sponsorship as a partnership giving access to youth athletes, families, and coaches."],
+                ["Personalize every email.", "Reference their business, why they fit the tier, and the visibility they'd receive."],
+                ["Use social proof early.", "Once you lock 1-2 sponsors, mention them to create momentum."],
+                ["Follow up consistently.", "Most commitments come after 2-3 follow-ups. Phone calls convert better than email alone."]
+              ].map(([title, body], i) => React.createElement('div', { key: i },
+                React.createElement('strong', { style: { color: "#C9A227" }}, title), " ", body
+              ))
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
